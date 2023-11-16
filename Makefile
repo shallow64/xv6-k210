@@ -1,7 +1,6 @@
-platform	:= k210
-#platform	:= qemu
-# mode := debug
-mode := release
+platform	:= qemu
+mode := debug
+
 K=kernel
 U=xv6-user
 T=target
@@ -59,11 +58,11 @@ endif
 
 QEMU = qemu-system-riscv64
 
-ifeq ($(platform), k210)
-RUSTSBI = ./bootloader/SBI/sbi-k210
-else
-RUSTSBI = ./bootloader/SBI/sbi-qemu
-endif
+#ifeq ($(platform), k210)
+#RUSTSBI = ./bootloader/SBI/sbi-k210
+#else
+#RUSTSBI = ./bootloader/SBI/sbi-qemu
+#endif
 
 # TOOLPREFIX	:= riscv64-unknown-elf-
 TOOLPREFIX	:= riscv64-linux-gnu-
@@ -74,6 +73,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -g
+#CFLAGS = -Wall -O0 -fno-omit-frame-pointer -ggdb -g
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
@@ -108,37 +108,39 @@ $T/kernel: $(OBJS) $(linker) $U/initcode
 build: $T/kernel userprogs
 
 # Compile RustSBI
-RUSTSBI:
-ifeq ($(platform), k210)
-	@cd ./bootloader/SBI/rustsbi-k210 && cargo build && cp ./target/riscv64gc-unknown-none-elf/debug/rustsbi-k210 ../sbi-k210
-	@$(OBJDUMP) -S ./bootloader/SBI/sbi-k210 > $T/rustsbi-k210.asm
-else
-	@cd ./bootloader/SBI/rustsbi-qemu && cargo build && cp ./target/riscv64gc-unknown-none-elf/debug/rustsbi-qemu ../sbi-qemu
-	@$(OBJDUMP) -S ./bootloader/SBI/sbi-qemu > $T/rustsbi-qemu.asm
-endif
-
-rustsbi-clean:
-	@cd ./bootloader/SBI/rustsbi-k210 && cargo clean
-	@cd ./bootloader/SBI/rustsbi-qemu && cargo clean
+#RUSTSBI:
+#ifeq ($(platform), k210)
+#	@cd ./bootloader/SBI/rustsbi-k210 && cargo build && cp ./target/riscv64gc-unknown-none-#elf/debug/rustsbi-k210 ../sbi-k210
+#	@$(OBJDUMP) -S ./bootloader/SBI/sbi-k210 > $T/rustsbi-k210.asm
+#else
+#	@cd ./bootloader/SBI/rustsbi-qemu && cargo build && cp ./target/riscv64gc-unknown-none-#elf/debug/rustsbi-qemu ../sbi-qemu
+#	@$(OBJDUMP) -S ./bootloader/SBI/sbi-qemu > $T/rustsbi-qemu.asm
+#endif
+#
+#rustsbi-clean:
+#	@cd ./bootloader/SBI/rustsbi-k210 && cargo clean
+#	@cd ./bootloader/SBI/rustsbi-qemu && cargo clean
 
 image = $T/kernel.bin
 k210 = $T/k210.bin
-k210-serialport := /dev/ttyUSB0
+k210-serialport := /dev/tty
 
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 
-QEMUOPTS = -machine virt -kernel $T/kernel -m 8M -nographic
+QEMUOPTS = -machine virt -kernel $T/kernel -m 128M -nographic
 
 # use multi-core 
 QEMUOPTS += -smp $(CPUS)
 
-QEMUOPTS += -bios $(RUSTSBI)
+#QEMUOPTS += -bios $(RUSTSBI)
+QEMUOPTS += -bios default
 
 # import virtual disk image
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0 
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
 
 run: build
 ifeq ($(platform), k210)
