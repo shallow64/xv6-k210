@@ -56,7 +56,7 @@ OBJS += \
 
 endif
 
-QEMU = qemu-system-riscv64
+QEMU = qemu-system-riscv64 -machine virt -kernel kernel-qemu -m 128M -nographic -smp 2 -bios sbi-qemu -drive file=sdcard.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -device virtio-net-device,netdev=net -netdev user,id=net -initrd initrd.img
 
 #ifeq ($(platform), k210)
 #RUSTSBI = ./bootloader/SBI/sbi-k210
